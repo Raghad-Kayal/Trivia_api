@@ -50,6 +50,7 @@ def create_app(test_config=None):
             abort(404)
 
         return jsonify({
+            'success': True,
             'Categories': theCategory
         })
 
@@ -67,6 +68,7 @@ def create_app(test_config=None):
             theCategory[i.id] = i.type
 
         return jsonify({
+            'success': True,
             'questions': theQuestion,
             'total_questions': len(allQuestions),
             'categories': theCategory
@@ -142,6 +144,7 @@ def create_app(test_config=None):
                 })
 
             return jsonify({
+                'success': True,
                 'questions': data,
                 'total_questions': len(searchQuestion)
             })
@@ -166,7 +169,6 @@ def create_app(test_config=None):
 
     @app.route('/quizzes', methods=['POST'])
     def play_quiz():
-
         body = request.get_json()
 
         previous_questions = body.get('previous_questions')
@@ -178,17 +180,93 @@ def create_app(test_config=None):
             abort(400)
 
         if category_id == 0:
-            question = Question.query.order_by(func.random()).first()
+            question = Question.query.all()
+            if len(previous_questions) == len(question):
+                question = None
+                return jsonify({
+                    'success': True,
+                    'question': question
+                })
+
+            else:
+                question = Question.query.order_by(func.random()).first()
+                return jsonify({
+                    'success': True,
+                    'question': question.format()
+                })
+
         else:
             question = Question.query.filter(
-                Question.category == category_id).order_by(func.random()).filter(Question.id.notin_(
-                    previous_questions)).first()
+                Question.category == category_id).all()
 
-        if question is not None:
+            if len(previous_questions) == len(question):
+                question = None
+                return jsonify({
+                    'success': True,
+                    'question': question
+                })
+
+            else:
+                question = Question.query.filter(
+                    Question.category == category_id).order_by(
+                        func.random()).filter(Question.id.notin_(
+                            previous_questions)).first()
+
             return jsonify({
                 'success': True,
                 'question': question.format()
             })
+
+        """ if question:
+            if len(previous_questions) == len(question):
+                question = None
+                return jsonify({
+                    'success': True,
+                    'question': question
+                })
+
+            else:
+                # while Question.category == 0:
+                while category_id == 0:
+                    question = Question.query.order_by(func.random()).first()
+
+                question = Question.query.filter(
+                    Question.category == category_id).order_by(
+                        func.random()).filter(Question.id.notin_(
+                            previous_questions)).first()
+
+                return jsonify({
+                    'success': True,
+                    'question': question.format()
+                })
+        else:
+            abort(404) """
+
+        """  previous_questions = request.json['previous_questions']
+        quiz_category = request.json['quiz_category']
+        if quiz_category['id'] == 0:
+            questions = Question.query.all()
+        else:
+            questions = Question.query.filter(
+                Question.category == quiz_category['id']).all()
+
+        if questions:
+            if len(previous_questions) == len(questions):
+                question = None
+                return jsonify({
+                    'success': True,
+                    'question': question
+                })
+            else:
+                question = random.choice(questions)
+                while question.id in previous_questions:
+                  question = random.choice(questions)
+                return jsonify({
+                    'success': True,
+                    'question': question.format()
+                })
+        else:
+         abort(404) """
 
     @app.errorhandler(404)
     def not_found(error):
@@ -198,6 +276,15 @@ def create_app(test_config=None):
             "error": 404,
             "message": "resource not found"
         }), 404
+
+    @app.errorhandler(405)
+    def not_allowed(error):
+
+        return jsonify({
+            "success": False,
+            "error": 405,
+            "message": "Method Not Allowed"
+        }), 405
 
     @app.errorhandler(422)
     def unprocessable(error):
