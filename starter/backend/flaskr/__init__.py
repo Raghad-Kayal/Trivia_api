@@ -212,10 +212,10 @@ def create_app(test_config=None):
                         func.random()).filter(Question.id.notin_(
                             previous_questions)).first()
 
-            return jsonify({
-                'success': True,
-                'question': question.format()
-            })
+                return jsonify({
+                    'success': True,
+                    'question': question.format()
+                })
 
     @app.errorhandler(404)
     def not_found(error):
